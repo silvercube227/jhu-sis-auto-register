@@ -177,6 +177,7 @@ try:
     # Handling "verify you aren't a bot" check
     # --------------------------
     wait_for_bot_check(browser)
+    # Enable the following block only for an active survey with a Continue to SIS button.
     """
     try:
         continue_btn = WebDriverWait(browser, 60).until(

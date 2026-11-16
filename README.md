@@ -90,6 +90,16 @@ Use `--attach 9333` if you launched Chrome with `--remote-debugging-port=9333`.
 Manual login does not guarantee that SIS will allow automation after attachment.
 If verification blocks progress, complete registration manually in Chrome.
 
+### Keep your Mac awake
+
+Keep your computer plugged in and awake while waiting for registration. In a
+separate terminal, you can run the built-in command below to prevent idle sleep
+for 7.5 hours (27,000 seconds):
+
+```bash
+caffeinate -t 27000
+```
+
 ### Optional: let the script open Chrome
 
 ```bash
@@ -136,6 +146,9 @@ Enter to close it. The first run may download SeleniumBase's UC ChromeDriver.
 Live SIS registration with this version has not been verified.
 
 ## Original automated-login script
+
+The upstream project reports testing this original version on macOS Sequoia and
+Windows 11. The manual Chrome launch instructions above are for macOS.
 
 ```bash
 python sis_register.py
