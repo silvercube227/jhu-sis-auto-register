@@ -10,7 +10,8 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoAlertPresentException
-from selenium.common.exceptions import TimeoutException, NoSuchElementException, NoAlertPresentException
+from selenium.common.exceptions import TimeoutException, NoSuchElementException, NoAlertPresentException, StaleElementReferenceException
+from urllib.parse import urlparse
 import tempfile
 import getpass
 import threading
@@ -38,6 +39,7 @@ if registration_time <= now:
 # Wait until 10 minutes before registration to log in to avoid inactivity log out
 # --------------------------
 login_time = registration_time - datetime.timedelta(minutes=10)
+print(f"📱 Have your phone ready at {login_time.strftime('%H:%M:%S')} to approve Microsoft's 2FA prompt.")
 print(f"⏳ Waiting until {login_time.strftime('%H:%M:%S')} to begin login...")
 while datetime.datetime.now() < login_time:
     time.sleep(1)
@@ -68,6 +70,70 @@ def stay_logged_in_watcher(browser):
 # Start the watcher in background
 watcher_thread = threading.Thread(target=stay_logged_in_watcher, args=(browser,), daemon=True)
 watcher_thread.start()
+
+
+# --------------------------
+# Microsoft 2FA helpers
+# --------------------------
+MFA_TIMEOUT = 300  # seconds allowed to finish 2FA on your phone before giving up
+
+def find_visible(browser, by, value):
+    """Return the first visible element matching the locator, or None."""
+    for element in browser.find_elements(by, value):
+        if element.is_displayed():
+            return element
+    return None
+
+def wait_for_two_factor(browser):
+    """Wait for you to finish Microsoft's 2FA on your phone, until we land back on SIS."""
+    print("\a📱 Complete Microsoft's 2FA on your phone now (approve the Authenticator prompt or scan the QR code in Chrome).")
+    deadline = time.time() + MFA_TIMEOUT
+    shown_number = None
+
+    while time.time() < deadline:
+        try:
+            if (urlparse(browser.current_url).hostname or "").endswith("sis.jhu.edu"):
+                print("✅ 2FA complete, back on SIS.")
+                return
+
+            if find_visible(browser, By.ID, "passwordError"):
+                raise Exception("Microsoft rejected the password.")
+
+            # Number matching: Authenticator asks you to type the number shown on screen
+            number = find_visible(browser, By.ID, "idRichContext_DisplaySign")
+            if number and number.text.strip() and number.text.strip() != shown_number:
+                shown_number = number.text.strip()
+                print(f"\a🔢 Enter {shown_number} in Microsoft Authenticator to approve the sign-in.")
+
+            # "Stay signed in?" page that appears after 2FA
+            if browser.find_elements(By.ID, "KmsiCheckboxField"):
+                yes_button = find_visible(browser, By.ID, "idSIButton9")
+                if yes_button:
+                    yes_button.click()
+                    print("✅ Clicked 'Yes' on 'Stay signed in?'.")
+        except StaleElementReferenceException:
+            pass  # page changed while we were reading it, just check again
+
+        time.sleep(1)
+
+    raise Exception(f"2FA wasn't completed within {MFA_TIMEOUT // 60} minutes.")
+
+BOT_CHECK_TIMEOUT = 300  # seconds allowed to click through SIS's bot check before giving up
+
+def wait_for_bot_check(browser):
+    """Give you time to click SIS's "verify you aren't a bot" check, until the SIS menu loads."""
+    registration_link = (By.XPATH, "//a[span[text()='Registration']]")
+    try:
+        WebDriverWait(browser, 10).until(EC.presence_of_element_located(registration_link))
+        return
+    except TimeoutException:
+        print(f"\a🤖 If Chrome shows a \"verify you aren't a bot\" check, click it now. Waiting up to {BOT_CHECK_TIMEOUT // 60} minutes...")
+
+    try:
+        WebDriverWait(browser, BOT_CHECK_TIMEOUT).until(EC.presence_of_element_located(registration_link))
+        print("✅ Past the bot check, SIS loaded.")
+    except TimeoutException:
+        raise Exception(f"SIS didn't load within {BOT_CHECK_TIMEOUT // 60} minutes of the bot check.")
 
 
 # --------------------------
@@ -102,6 +168,16 @@ try:
     password_field.send_keys(password)
     password_field.send_keys(Keys.RETURN)
 
+    # --------------------------
+    # Handling Microsoft 2FA
+    # --------------------------
+    wait_for_two_factor(browser)
+
+    # --------------------------
+    # Handling "verify you aren't a bot" check
+    # --------------------------
+    wait_for_bot_check(browser)
+    """
     try:
         continue_btn = WebDriverWait(browser, 60).until(
             EC.presence_of_element_located((By.ID, 'ctl00_contentPlaceHolder_btnContinueToIsis'))
@@ -113,6 +189,7 @@ try:
     except Exception as e:
         print(f"❌ Failed to click 'Continue to SIS'. Error: {e}")
         sys.exit(1)
+    """
 
 except Exception as e:
     print(f"❌ Login failed. Error: {str(e)}")

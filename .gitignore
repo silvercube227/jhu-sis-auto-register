@@ -3,3 +3,7 @@ __pycache__/
 *.png
 .vscode/
 .env
+.DS_Store
+sis-bot-venv/
+.venv/
+downloaded_files/

@@ -1,0 +1,2 @@
+# Optional dependencies for sis_register_uc.py (Python 3.10+).
+seleniumbase>=4.58.0,<5
