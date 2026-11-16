@@ -81,6 +81,7 @@ Use `--attach 9333` if you launched Chrome with `--remote-debugging-port=9333`.
 ### Timing, cancellation, and results
 
 - Times use your computer's **local timezone and clock**. Check both before running.
+- **Sync your computer's clock before registration** using automatic network time. The U.S. Naval Observatory server is `tick.usno.navy.mil`; however, [USNO directs individual users to public time servers](https://www.cnmoc.usff.navy.mil/Our-Commands/United-States-Naval-Observatory/Precise-Time-Department/Network-Time-Protocol-NTP/), so use your operating system's default time service unless you have arranged direct USNO access.
 - A time that has already passed when you start schedules **tomorrow**; check the printed date.
 - If login or cart setup runs past the scheduled time, the manual version asks before registering immediately.
 - Keep the SIS tab logged in and dismiss inactivity prompts yourself.
