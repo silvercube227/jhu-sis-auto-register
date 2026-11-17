@@ -89,23 +89,12 @@ Allow about 10 minutes for login, Authenticator, verification, and cart loading.
 
 ## Sync your clock (macOS)
 
-The Register click is scheduled using your computer's clock, so enable automatic
-network time and verify the timezone before registration.
+SIS uses the US Naval Observatory (NIST) clock. You must sync your Mac to match this time source:
 
-1. Open **Apple menu → System Settings → General → Date & Time**.
-2. Turn on **Set time and date automatically**.
-3. Keep the default time server, or click **Set** to enter an appropriate network time server; authenticate if prompted.
-4. Check the timezone and convert your SIS registration time to that local timezone before entering it in the script.
-
-See [Apple's Date & Time settings guide](https://support.apple.com/guide/mac-help/mchlp1124/mac).
-On older macOS releases, these controls are under **System Preferences → Date & Time**.
-
-The Navy server from the original instructions is `tick.usno.navy.mil` (U.S. Naval
-Observatory, or USNO). [USNO directs individual users to public time servers](https://www.cnmoc.usff.navy.mil/Our-Commands/United-States-Naval-Observatory/Precise-Time-Department/Network-Time-Protocol-NTP/),
-so keep your operating system's default service unless you have arranged direct
-USNO access. This project has not verified which time source SIS uses. USNO and
-NIST are different organizations; selecting a 24-hour display alone does not
-synchronize your clock.
+1. Open System Preferences → Date & Time
+2. In the Time Server field, click Set and enter your Mac password
+3. Change the server from time.apple.com ➜ tick.usno.navy.mil
+4. Click the lock again to save your changes
 
 ## Recommended: log in yourself, then attach Selenium
 
@@ -200,7 +189,7 @@ brew install --cask caffeine
 Open Caffeine and enable it before waiting. Caffeine is optional; the built-in
 command avoids an additional app installation.
 
-### Optional: let the script open Chrome
+### Optional: let the script open Chrome (THIS DOES NOT WORK ANYMORE)
 
 ```bash
 python sis_register_manual.py
