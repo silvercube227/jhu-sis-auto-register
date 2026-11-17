@@ -11,23 +11,101 @@ The SeleniumBase UC version remains experimental: it continued asking for a
 security key instead of offering the expected Authenticator option in this setup.
 The attempted browser-setting adjustment did not resolve that issue.
 
-## Requirements and setup
+## Features
+
+- Log in manually with Microsoft Authenticator before Selenium takes control.
+- Attach to an existing debugging-enabled Chrome session.
+- Navigate to My Cart and select all courses without unchecking an existing selection.
+- Wait for your chosen registration time and click Register once.
+- Allow time for slow SIS pages with explicit element waits.
+- Keep Chrome open afterward so you can check results and finish any confirmation screens.
+
+## Requirements
 
 - macOS for the Chrome launch command below
 - Python 3.10+ recommended for the current dependencies; required for the UC version
-- Google Chrome and a compatible ChromeDriver
+- [Google Chrome](https://www.google.com/chrome/) and a compatible ChromeDriver
+- Git to clone the repository
 - Your intended courses already added to the SIS Enrollment Cart
 
-From the repository folder:
+The upstream project reports testing the original script on macOS Sequoia and
+Windows 11. The setup and browser-launch commands here target macOS; they do not
+establish Windows support for the new variants.
+
+## Installation & setup
+
+### 1. Clone this fork
+
+```bash
+git clone https://github.com/silvercube227/jhu-sis-auto-register.git
+cd jhu-sis-auto-register
+```
+
+This fork includes the manual and UC variants. The original project is
+[charissa-luk/jhu-sis-auto-register](https://github.com/charissa-luk/jhu-sis-auto-register).
+If you already have this checkout, open a terminal in its folder and skip cloning.
+
+### 2. Check Python, then create and activate a virtual environment
+
+```bash
+python3 --version
+```
+
+Use Python 3.10 or newer for this setup. If needed, install it from
+[python.org](https://www.python.org/downloads/) before continuing.
 
 ```bash
 python3 -m venv sis-bot-venv
 source sis-bot-venv/bin/activate
+```
+
+If the virtual environment already exists, just activate it. Activate it again
+in each new terminal before running a script.
+
+### 3. Install the required packages
+
+```bash
+python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
 
-If the virtual environment already exists and dependencies are installed, just
-activate it with `source sis-bot-venv/bin/activate`.
+This installs Selenium and `python-dateutil`. SeleniumBase is only needed for the
+experimental UC version; its installation command appears in that section.
+
+### 4. Prepare Chrome and ChromeDriver
+
+Install/update Chrome and launch it once to finish its first-run setup. Modern
+Selenium uses [Selenium Manager](https://www.selenium.dev/documentation/selenium_manager/)
+to find or download a compatible driver when one is not already supplied. Allow
+internet access for that first run. If you manage ChromeDriver yourself, use the
+[official version-selection guide](https://developer.chrome.com/docs/chromedriver/downloads/version-selection)
+and choose a version compatible with your installed Chrome.
+
+### 5. Prepare your SIS cart
+
+Add the intended courses to your Enrollment Cart in advance and confirm your
+registration date/time and term. The script selects **every course in the cart**.
+Allow about 10 minutes for login, Authenticator, verification, and cart loading.
+
+## Sync your clock (macOS)
+
+The Register click is scheduled using your computer's clock, so enable automatic
+network time and verify the timezone before registration.
+
+1. Open **Apple menu → System Settings → General → Date & Time**.
+2. Turn on **Set time and date automatically**.
+3. Keep the default time server, or click **Set** to enter an appropriate network time server; authenticate if prompted.
+4. Check the timezone and convert your SIS registration time to that local timezone before entering it in the script.
+
+See [Apple's Date & Time settings guide](https://support.apple.com/guide/mac-help/mchlp1124/mac).
+On older macOS releases, these controls are under **System Preferences → Date & Time**.
+
+The Navy server from the original instructions is `tick.usno.navy.mil` (U.S. Naval
+Observatory, or USNO). [USNO directs individual users to public time servers](https://www.cnmoc.usff.navy.mil/Our-Commands/United-States-Naval-Observatory/Precise-Time-Department/Network-Time-Protocol-NTP/),
+so keep your operating system's default service unless you have arranged direct
+USNO access. This project has not verified which time source SIS uses. USNO and
+NIST are different organizations; selecting a 24-hour display alone does not
+synchronize your clock.
 
 ## Recommended: log in yourself, then attach Selenium
 
@@ -81,7 +159,7 @@ Use `--attach 9333` if you launched Chrome with `--remote-debugging-port=9333`.
 ### Timing, cancellation, and results
 
 - Times use your computer's **local timezone and clock**. Check both before running.
-- **Sync your computer's clock before registration** using automatic network time. The U.S. Naval Observatory server is `tick.usno.navy.mil`; however, [USNO directs individual users to public time servers](https://www.cnmoc.usff.navy.mil/Our-Commands/United-States-Naval-Observatory/Precise-Time-Department/Network-Time-Protocol-NTP/), so use your operating system's default time service unless you have arranged direct USNO access.
+- **Sync your computer's clock before registration** using the [clock setup steps above](#sync-your-clock-macos).
 - A time that has already passed when you start schedules **tomorrow**; check the printed date.
 - If login or cart setup runs past the scheduled time, the manual version asks before registering immediately.
 - Keep the SIS tab logged in and dismiss inactivity prompts yourself.
@@ -93,13 +171,34 @@ If verification blocks progress, complete registration manually in Chrome.
 
 ### Keep your Mac awake
 
-Keep your computer plugged in and awake while waiting for registration. In a
-separate terminal, you can run the built-in command below to prevent idle sleep
-for 7.5 hours (27,000 seconds):
+Keep your computer plugged in with the lid open while waiting for registration.
+The built-in `caffeinate` command needs no installation. To keep the Mac from
+idle sleeping while the manual script runs, use this in place of its normal run
+command after activating your virtual environment:
+
+```bash
+caffeinate -i python sis_register_manual.py --attach
+```
+
+Alternatively, in a separate terminal, prevent idle sleep for 7.5 hours
+(27,000 seconds, for example midnight to 7:30 AM):
 
 ```bash
 caffeinate -t 27000
 ```
+
+Leave that terminal running; `Ctrl+C` ends the keep-awake period. Keeping the Mac
+awake does not prevent SIS from logging out an inactive session.
+
+If you prefer a menu-bar app and already have [Homebrew](https://brew.sh/), the
+[Caffeine cask](https://formulae.brew.sh/cask/caffeine) is another option:
+
+```bash
+brew install --cask caffeine
+```
+
+Open Caffeine and enable it before waiting. Caffeine is optional; the built-in
+command avoids an additional app installation.
 
 ### Optional: let the script open Chrome
 
@@ -162,6 +261,8 @@ manual attachment if those prevent login, or complete registration yourself.
 
 ## Troubleshooting manual attachment
 
+- **`python3` or `git` is missing:** install the prerequisite before cloning or creating the environment. If macOS prompts to install Command Line Tools when you run Git, finish that installation first.
+- **`ModuleNotFoundError`:** activate `sis-bot-venv` and run `python -m pip install -r requirements.txt` in the repository folder. For the UC version, also install `requirements-uc.txt`.
 - **Cannot connect to `127.0.0.1:9222`:** check that the Chrome window launched with the command above is still open and that the script's port matches Chrome's port.
 - **ChromeDriver version error:** use a ChromeDriver compatible with your installed Chrome version.
 - **No logged-in SIS tab found:** finish login and verification, then open My Cart before pressing Enter at the handoff prompt.
